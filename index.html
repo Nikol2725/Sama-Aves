@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SAMA - Identificación de aves</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #edf5e8; color: #214b2b; padding: 20px; }
+    button, input { margin: 12px; padding: 10px; }
+    #resultado { font-size: 1.3em; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>SAMA | Monitoreo de aves</h1>
+  <p>Selecciona una fotografía para identificar el ave.</p>
+  <input type="file" id="foto" accept="image/*">
+  <p id="estado">Cargando modelo...</p>
+  <img id="vista" alt="Fotografía seleccionada" style="max-width:90%;max-height:300px;">
+  <p id="resultado">Ave identificada: pendiente</p>
+  <p id="coincidencia">Coincidencia: pendiente</p>
+
+  <script>
+    const URL_MODELO = "https://teachablemachine.withgoogle.com/models/897dUBfKt/";
+    let modelo;
+
+    async function iniciar() {
+      try {
+        modelo = await tmImage.load(
+          URL_MODELO + "model.json",
+          URL_MODELO + "metadata.json"
+        );
+        document.getElementById("estado").textContent = "Modelo listo";
+      } catch (e) {
+        document.getElementById("estado").textContent =
+          "No se pudo cargar el modelo. Revisa la conexión.";
+        console.error(e);
+      }
+    }
+
+    document.getElementById("foto").addEventListener("change", async (e) => {
+      const archivo = e.target.files[0];
+      if (!archivo || !modelo) {
+        document.getElementById("resultado").textContent =
+          "Espera a que el modelo esté listo.";
+        return;
+      }
+
+      const imagen = document.getElementById("vista");
+      imagen.src = URL.createObjectURL(archivo);
+      await new Promise((resolve) => imagen.onload = resolve);
+
+      const predicciones = await modelo.predict(imagen);
+      predicciones.sort((a, b) => b.probability - a.probability);
+      const mejor = predicciones[0];
+
+      document.getElementById("resultado").textContent =
+        "Ave identificada: " + mejor.className;
+      document.getElementById("coincidencia").textContent =
+        "Coincidencia: " + (mejor.probability * 100).toFixed(1) + "%";
+    });
+
+    iniciar();
+  </script>
+</body>
+</html>
