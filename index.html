@@ -59,6 +59,12 @@
         "Ave identificada: " + mejor.className;
       document.getElementById("coincidencia").textContent =
         "Coincidencia: " + (mejor.probability * 100).toFixed(1) + "%";
+  if (window.AppInventor) {
+  window.AppInventor.setWebViewString(
+    mejor.className + "|" +
+    (mejor.probability * 100).toFixed(1)
+  );
+}
     });
 
     iniciar();
