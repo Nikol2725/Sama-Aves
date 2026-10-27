@@ -4,31 +4,141 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SAMA - Identificación de aves</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #edf5e8; color: #214b2b; padding: 20px; }
-    button, input { margin: 12px; padding: 10px; }
-    #resultado { font-size: 1.3em; font-weight: bold; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #edf5e8;
+      color: #214b2b;
+      padding: 20px;
+    }
+
+    button, input {
+      margin: 12px;
+      padding: 10px;
+    }
+
+    #resultado {
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+
+    #fichaAve {
+      display: none;
+      max-width: 700px;
+      margin: 25px auto;
+      padding: 22px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px #214b2b22;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    #fichaAve h2 {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    #cientifico {
+      text-align: center;
+      font-style: italic;
+      color: #397347;
+      font-size: 1.1em;
+    }
+
+    #datosAve {
+      white-space: pre-line;
+    }
+
+    .coincidencia {
+      text-align: center;
+      font-weight: bold;
+      color: #397347;
+    }
   </style>
 </head>
+
 <body>
   <h1>SAMA | Monitoreo de aves</h1>
   <p>Selecciona una fotografía para identificar el ave.</p>
+
   <input type="file" id="foto" accept="image/*">
+
   <p id="estado">Cargando modelo...</p>
-  <img id="vista" alt="Fotografía seleccionada" style="max-width:90%;max-height:300px;">
+
+  <img id="vista" alt="Fotografía seleccionada"
+       style="max-width:90%;max-height:300px;">
+
   <p id="resultado">Ave identificada: pendiente</p>
   <p id="coincidencia">Coincidencia: pendiente</p>
 
+  <section id="fichaAve">
+    <h2 id="nombreAve"></h2>
+    <p id="cientifico"></p>
+    <div id="datosAve"></div>
+  </section>
+
   <script>
-    const URL_MODELO = "https://teachablemachine.withgoogle.com/models/897dUBfKt/";
-   const EN_APP_INVENTOR = true;
-function enviarResultado(texto) {
-  if (window.AppInventor && window.AppInventor.setWebViewString) {
-    window.AppInventor.setWebViewString(texto);
-  }
-}
+    const URL_MODELO =
+      "https://teachablemachine.withgoogle.com/models/897dUBfKt/";
+
+    function enviarResultado(texto) {
+      if (window.AppInventor &&
+          window.AppInventor.setWebViewString) {
+        window.AppInventor.setWebViewString(texto);
+      }
+    }
+
+    const aves = {
+      "Chancha": {
+        cientifico: "Cyanocorax violaceus",
+        informacion: `Es una especie grande y llamativa, de color azul violeta opaco, con una banda blanco sucio en la nuca. La cabeza, la garganta y el pecho son negros y tiene una pequeña cresta.
+
+Vive en grupos familiares grandes, de 8 a 10 individuos, que se mueven entre parches de vegetación, cercas vivas y matorrales. Es muy ruidosa y tiene distintos tipos de vocalizaciones que utiliza en diferentes contextos.
+
+En algunas regiones de la Amazonia se considera un centinela del bosque, porque sus llamados alertan a otros animales ante la posible presencia de depredadores.
+
+Se alimenta de frutos, insectos y pequeños vertebrados. También es considerada una depredadora de nidos muy voraz.
+
+En Santa María se observa en la cabecera municipal y sus alrededores. Es común verla en la vía a Mámbita y a San Luis de Gaceno.
+
+Peso: 262 g.`
+      },
+
+      "Pava": {
+        cientifico: "Penelope argyrotis",
+        informacion: `Es un ave de tamaño mediano, de color café con algunas estrías blancas, una gula de color rojo y un antifaz blanquecino. Tiene la cola larga y las alas redondeadas, que le permiten volar distancias medianas, especialmente planeando.
+
+Su canto es un graznido fuerte y ruidoso que se escucha al amanecer y al atardecer. Cuando se asusta, emite un graznido más corto antes de salir volando.
+
+Su alimentación se basa principalmente en los frutos de los árboles.
+
+Es un ave común en el municipio de Santa María y se observa con mayor frecuencia donde abundan los árboles y los bosques conservados.`
+      },
+
+      "Mochilero": {
+        cientifico: "Psarocolius angustifrons",
+        informacion: `Es un ave carismática y fácil de reconocer por sus características. Teje nidos largos en forma de mochila, de donde proviene su nombre común.
+
+Tiene un pico largo, puntiagudo y amarillento. La frente y las cejas son de color amarillo brillante, la cabeza es castaño claro, la espalda es café más oscura y las alas son negras. Las plumas centrales de la parte superior de la cola son cafés y las demás son amarillo brillante.
+
+Existe dimorfismo sexual en el tamaño: los machos son mucho más grandes que las hembras.
+
+Se mueve en grupos grandes y recorre largas distancias por las copas de los árboles, entre fragmentos de bosque y cercas vivas.
+
+Es omnívoro: se alimenta de frutos, insectos y pequeños vertebrados. En ocasiones depreda nidos de otras especies.
+
+En la zona se observa en Santa María, La Almenara, La Cristalina y en la vía a Mámbita y a San Luis de Gaceno.
+
+Peso: machos 280 g; hembras 219 g.`
+      }
+    };
+
     let modelo;
 
     async function iniciar() {
@@ -37,45 +147,70 @@ function enviarResultado(texto) {
           URL_MODELO + "model.json",
           URL_MODELO + "metadata.json"
         );
-        document.getElementById("estado").textContent = "Modelo listo";
+
+        document.getElementById("estado").textContent =
+          "Modelo listo";
       } catch (e) {
         document.getElementById("estado").textContent =
           "No se pudo cargar el modelo. Revisa la conexión.";
+
         console.error(e);
       }
     }
 
-    document.getElementById("foto").addEventListener("change", async (e) => {
-      const archivo = e.target.files[0];
-      if (!archivo || !modelo) {
+    document.getElementById("foto").addEventListener(
+      "change", async (e) => {
+        const archivo = e.target.files[0];
+
+        if (!archivo || !modelo) {
+          document.getElementById("resultado").textContent =
+            "Espera a que el modelo esté listo.";
+          return;
+        }
+
+        const imagen = document.getElementById("vista");
+        imagen.src = URL.createObjectURL(archivo);
+
+        await new Promise((resolve) => {
+          imagen.onload = resolve;
+        });
+
+        const predicciones = await modelo.predict(imagen);
+        predicciones.sort(
+          (a, b) => b.probability - a.probability
+        );
+
+        const mejor = predicciones[0];
+        const porcentaje =
+          (mejor.probability * 100).toFixed(1);
+
         document.getElementById("resultado").textContent =
-          "Espera a que el modelo esté listo.";
-        return;
+          "Ave identificada: " + mejor.className;
+
+        document.getElementById("coincidencia").textContent =
+          "Coincidencia: " + porcentaje + "%";
+
+        enviarResultado(mejor.className + "|" + porcentaje);
+
+        const ficha = aves[mejor.className];
+        const panel = document.getElementById("fichaAve");
+
+        if (ficha) {
+          document.getElementById("nombreAve").textContent =
+            mejor.className;
+
+          document.getElementById("cientifico").textContent =
+            ficha.cientifico;
+
+          document.getElementById("datosAve").textContent =
+            ficha.informacion;
+
+          panel.style.display = "block";
+        } else {
+          panel.style.display = "none";
+        }
       }
-
-      const imagen = document.getElementById("vista");
-      imagen.src = URL.createObjectURL(archivo);
-      await new Promise((resolve) => imagen.onload = resolve);
-
-      const predicciones = await modelo.predict(imagen);
-      predicciones.sort((a, b) => b.probability - a.probability);
-      const mejor = predicciones[0];
-
-      document.getElementById("resultado").textContent =
-        "Ave identificada: " + mejor.className;
-      document.getElementById("coincidencia").textContent =
-        "Coincidencia: " + (mejor.probability * 100).toFixed(1) + "%";
-      enviarResultado(
-  mejor.className + "|" +
-  (mejor.probability * 100).toFixed(1)
-);
-  if (window.AppInventor) {
-  window.AppInventor.setWebViewString(
-    mejor.className + "|" +
-    (mejor.probability * 100).toFixed(1)
-  );
-}
-    });
+    );
 
     iniciar();
   </script>
