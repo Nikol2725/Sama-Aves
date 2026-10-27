@@ -23,6 +23,12 @@
 
   <script>
     const URL_MODELO = "https://teachablemachine.withgoogle.com/models/897dUBfKt/";
+   const EN_APP_INVENTOR = true;
+function enviarResultado(texto) {
+  if (window.AppInventor && window.AppInventor.setWebViewString) {
+    window.AppInventor.setWebViewString(texto);
+  }
+}
     let modelo;
 
     async function iniciar() {
@@ -59,6 +65,10 @@
         "Ave identificada: " + mejor.className;
       document.getElementById("coincidencia").textContent =
         "Coincidencia: " + (mejor.probability * 100).toFixed(1) + "%";
+      enviarResultado(
+  mejor.className + "|" +
+  (mejor.probability * 100).toFixed(1)
+);
   if (window.AppInventor) {
   window.AppInventor.setWebViewString(
     mejor.className + "|" +
